@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Schedules Application - Patriarchal College</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+        }
+
+        /* Completely remove scrollbars and prevent scrolling across the entire page and browser */
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 5px;
+            overflow: hidden !important;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            box-sizing: border-box;
+        }
+
+        *, *::before, *::after {
+            box-sizing: inherit;
+        }
+
+        .container {
+            max-width: 1100px;
+            height: 100%;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+
+        h1, h2 {
+            text-align: center;
+            color: var(--primary-color);
+            margin-top: 5px;
+            margin-bottom: 10px;
+            font-size: 1.3rem;
+        }
+
+        .screen {
+            display: none;
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            animation: fadeIn 0.3s ease-in-out;
+            max-height: 98vh;
+            overflow: hidden !important;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .grid-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 12px;
+            margin-top: 10px;
+            overflow: hidden !important;
+        }
+
+        .card {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+
+        .card.teacher-card {
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            padding: 10px;
+            font-size: 0.9rem;
+        }
+
+        .back-btn {
+            background-color: #95a5a6;
+            color: white;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            margin-bottom: 5px;
+            transition: background 0.2s;
+        }
+
+        .back-btn:hover {
+            background-color: #7f8c8d;
+        }
+
+        /* Layout structure for schedule screen: Table on left/top, Quick Buttons panel on right/bottom */
+        .schedule-layout {
+            display: flex;
+            gap: 15px;
+            margin-top: 5px;
+            height: calc(100% - 80px);
+        }
+
+        .table-area {
+            flex: 3;
+            overflow: hidden !important;
+        }
+
+        .quick-buttons-panel {
+            flex: 1.2;
+            background: #f1f2f6;
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden !important;
+        }
+
+        .quick-buttons-panel.hidden {
+            display: none !important;
+        }
+
+        .quick-buttons-panel h4 {
+            margin: 0 0 8px 0;
+            text-align: center;
+            color: var(--primary-color);
+            font-size: 0.85rem;
+        }
+
+        .classes-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 4px;
+            max-height: 280px;
+            overflow-y: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .classes-grid::-webkit-scrollbar {
+            display: none;
+        }
+
+        .class-btn {
+            background-color: #e67e22;
+            color: white;
+            border: none;
+            padding: 5px 2px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            text-align: center;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .class-btn:hover {
+            background-color: #d35400;
+            transform: scale(1.05);
+        }
+
+        .table-responsive {
+            width: 100%;
+            overflow: hidden !important;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: center;
+            background: white;
+            table-layout: fixed;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 5px 2px;
+            word-break: break-word;
+        }
+
+        th {
+            background-color: var(--primary-color);
+            color: white;
+            font-size: 0.75rem;
+        }
+
+        td.day-col {
+            background-color: #f1f2f6;
+            font-weight: bold;
+            font-size: 0.7rem;
+            width: 80px;
+        }
+
+        input.schedule-input {
+            width: 96%;
+            padding: 3px 1px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            text-align: center;
+            font-size: 0.75rem;
+            cursor: pointer;
+        }
+
+        input.schedule-input:focus {
+            border-color: var(--secondary-color);
+            outline: none;
+            box-shadow: 0 0 4px rgba(52, 152, 219, 0.5);
+            background-color: #ebf5fb;
+        }
+
+        .save-container {
+            text-align: center;
+            margin-top: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .save-btn {
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            padding: 8px 24px;
+            font-size: 0.95rem;
+            border-radius: 5px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: background 0.2s;
+        }
+
+        .save-btn:hover {
+            background-color: #27ae60;
+        }
+
+        .toggle-panel-btn {
+            background-color: #34495e;
+            color: white;
+            border: none;
+            padding: 8px 14px;
+            font-size: 0.9rem;
+            border-radius: 5px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: background 0.2s;
+        }
+
+        .toggle-panel-btn:hover {
+            background-color: #2c3e50;
+        }
+
+        .alert-msg {
+            margin-top: 4px;
+            color: #2ecc71;
+            font-weight: bold;
+            font-size: 0.8rem;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- Screen 1: Schools Selection -->
+    <div id="schoolsScreen" class="screen active">
+        <h1>Select School</h1>
+        <div class="grid-cards">
+            <div class="card" onclick="selectSchool('heliopolis')">Patriarchal college Heliopolis (Ex-Frères)</div>
+            <div class="card" onclick="selectSchool('coed')">Patriarchal college Co-educational</div>
+            <div class="card" onclick="selectSchool('ramses')">Patriarchal college Ramses</div>
+        </div>
+    </div>
+
+    <!-- Screen 2: Teachers List -->
+    <div id="teachersScreen" class="screen">
+        <button class="back-btn" onclick="goToSchools()">← Back to Schools</button>
+        <h2 id="schoolTitle">Teachers List</h2>
+        <div id="teachersGrid" class="grid-cards"></div>
+    </div>
+
+    <!-- Screen 3: Blank Schedule & Quick Input Panel -->
+    <div id="scheduleScreen" class="screen">
+        <button class="back-btn" onclick="goToTeachers()">← Back to Teachers</button>
+        <h2 id="teacherTitle">Timetable</h2>
+        
+        <div class="schedule-layout">
+            <!-- Table Area -->
+            <div class="table-area">
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Day / Period</th>
+                                <th>1</th>
+                                <th>2</th>
+                                <th>3</th>
+                                <th>4</th>
+                                <th>5</th>
+                                <th>6</th>
+                                <th>7</th>
+                                <th>8</th>
+                                <th>9</th>
+                            </tr>
+                        </thead>
+                        <tbody id="scheduleBody"></tbody>
+                    </table>
+                </div>
+
+                <div class="save-container">
+                    <button class="save-btn" onclick="saveSchedule()">Save Changes</button>
+                    <button class="toggle-panel-btn" onclick="toggleQuickPanel()" id="togglePanelBtn">Show Panel</button>
+                    <div id="saveAlert" class="alert-msg">Schedule saved successfully!</div>
+                </div>
+            </div>
+
+            <!-- Quick Class Selection Panel -->
+            <div class="quick-buttons-panel hidden" id="quickButtonsPanel">
+                <h4>Quick Classes Panel</h4>
+                <div class="classes-grid" id="classesGrid">
+                    <!-- Buttons will be populated dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // Complete Schools and Teachers Data
+    const schoolsData = {
+        heliopolis: {
+            name: "Patriarchal college Heliopolis (Ex-Frères)",
+            teachers: [
+                { id: "h_nancy_said", name: "Nancy Said" },
+                { id: "h_dina_samir", name: "Dina Samir" },
+                { id: "h_marina_napoleon", name: "Marina Napoleon" },
+                { id: "h_marina_adel", name: "Marina Adel" },
+                { id: "h_sara_bassem", name: "Sara Bassem" },
+                { id: "h_nevine_makar", name: "Nevine Makar" },
+                { id: "h_martina_ibrahim", name: "Martina Ibrahim" },
+                { id: "h_monica_emad", name: "Monica Emad" },
+                { id: "h_merit_ehab", name: "Merit Ehab" },
+                { id: "h_mirna_karam", name: "Mirna Karam" },
+                { id: "h_fahim_henry", name: "Fahim Henry" },
+                { id: "h_nancy_mokram", name: "Nancy Mokram" },
+                { id: "h_marina_zaky", name: "Marina Zahi" }
+            ]
+        },
+        coed: {
+            name: "Patriarchal college Co-educational",
+            teachers: [
+                { id: "c_sherine", name: "Sherine" },
+                { id: "c_marianne_adel", name: "Marianne Adel" },
+                { id: "c_sally_philip", name: "Sally Philip" },
+                { id: "c_marina_wagdy", name: "Marina Wagdy" },
+                { id: "c_nasseem_albeir", name: "Nasseem Albeir" }
+            ]
+        },
+        ramses: {
+            name: "Patriarchal college Ramses",
+            teachers: [
+                { id: "r_mirna", name: "Mirna Sabri" },
+                { id: "r_marianne", name: "Marianne Choukry" },
+                { id: "r_mina_nabil", name: "Mina Nabil" },
+                { id: "r_mina_samir", name: "Mina Samir" },
+                { id: "r_omar", name: "Omar Salah" },
+                { id: "r_atef", name: "Atef" },
+                { id: "r_christine", name: "Christine Kamil" },
+                { id: "r_ninnette", name: "Ninnette Nader" }
+            ]
+        }
+    };
+
+    // Class list requested by user
+    const classList = [
+        "KG1", "KG1A", "KG1B", "KG2", "KG2A", "KG2B",
+        "G1A", "G1B", "G2A", "G2B", "G3A", "G3B", "G3C",
+        "G4A", "G4B", "G4C", "G5A", "G5B", "G5C",
+        "G6A", "G6B", "G6C", "PREP1A", "PREP1B", "PREP1C",
+        "PREP2A", "PREP2B", "PREP3", "SEC1A", "SEC1B", "SEC2",
+        "PRIMAIRE1", "PRIMAIRE2", "PREPARA1", "PREPARA2", "PREPARA3",
+        "SECONDA1", "SECOND2"
+    ];
+
+    const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Saturday"];
+    let currentSchoolKey = "";
+    let currentTeacherId = "";
+    let activeInput = null; // Tracks the last clicked schedule input box
+
+    function selectSchool(schoolKey) {
+        currentSchoolKey = schoolKey;
+        const school = schoolsData[schoolKey];
+        document.getElementById("schoolTitle").innerText = school.name;
+
+        const grid = document.getElementById("teachersGrid");
+        grid.innerHTML = "";
+
+        school.teachers.forEach(teacher => {
+            const card = document.createElement("div");
+            card.className = "card teacher-card";
+            card.innerText = teacher.name;
+            card.onclick = () => openSchedule(teacher.id, teacher.name);
+            grid.appendChild(card);
+        });
+
+        switchScreen("teachersScreen");
+    }
+
+    function openSchedule(teacherId, teacherName) {
+        currentTeacherId = teacherId;
+        document.getElementById("teacherTitle").innerText = "Timetable: " + teacherName;
+        
+        buildTableStructure();
+        buildQuickButtons();
+        loadSavedSchedule();
+        switchScreen("scheduleScreen");
+    }
+
+    function buildTableStructure() {
+        const tbody = document.getElementById("scheduleBody");
+        tbody.innerHTML = "";
+
+        days.forEach((day, dayIndex) => {
+            const tr = document.createElement("tr");
+            
+            const tdDay = document.createElement("td");
+            tdDay.className = "day-col";
+            tdDay.innerText = day;
+            tr.appendChild(tdDay);
+
+            for (let p = 1; p <= 9; p++) {
+                const td = document.createElement("td");
+                const input = document.createElement("input");
+                input.type = "text";
+                input.className = "schedule-input";
+                input.dataset.day = dayIndex;
+                input.dataset.period = p;
+
+                // Track active input when clicked or focused
+                input.addEventListener("focus", function() {
+                    activeInput = this;
+                });
+
+                td.appendChild(input);
+                tr.appendChild(td);
+            }
+
+            tbody.appendChild(tr);
+        });
+    }
+
+    // Populate the quick buttons panel with class names
+    function buildQuickButtons() {
+        const grid = document.getElementById("classesGrid");
+        grid.innerHTML = "";
+
+        classList.forEach(className => {
+            const btn = document.createElement("button");
+            btn.className = "class-btn";
+            btn.innerText = className;
+            btn.type = "button";
+            btn.onclick = () => insertClassToActiveInput(className);
+            grid.appendChild(btn);
+        });
+    }
+
+    // Insert class name into the active slot and automatically move to the next slot
+    function insertClassToActiveInput(className) {
+        if (!activeInput) {
+            // If no input is focused, default to the first input in the table
+            const firstInput = document.querySelector(".schedule-input");
+            if (firstInput) {
+                activeInput = firstInput;
+                activeInput.focus();
+            } else {
+                return;
+            }
+        }
+
+        activeInput.value = className;
+
+        // Automatically jump to the next input box for faster filling
+        const allInputs = Array.from(document.querySelectorAll(".schedule-input"));
+        const currentIndex = allInputs.indexOf(activeInput);
+        if (currentIndex !== -1 && currentIndex < allInputs.length - 1) {
+            activeInput = allInputs[currentIndex + 1];
+            activeInput.focus();
+            activeInput.select();
+        }
+    }
+
+    function saveSchedule() {
+        const inputs = document.querySelectorAll(".schedule-input");
+        const scheduleData = {};
+
+        inputs.forEach(input => {
+            const key = `${input.dataset.day}_${input.dataset.period}`;
+            scheduleData[key] = input.value;
+        });
+
+        localStorage.setItem(`schedule_${currentTeacherId}`, JSON.stringify(scheduleData));
+
+        const alertBox = document.getElementById("saveAlert");
+        alertBox.style.display = "block";
+        setTimeout(() => {
+            alertBox.style.display = "none";
+        }, 2000);
+    }
+
+    function loadSavedSchedule() {
+        const savedData = localStorage.getItem(`schedule_${currentTeacherId}`);
+        const inputs = document.querySelectorAll(".schedule-input");
+
+        if (savedData) {
+            const scheduleData = JSON.parse(savedData);
+            inputs.forEach(input => {
+                const key = `${input.dataset.day}_${input.dataset.period}`;
+                input.value = scheduleData[key] !== undefined ? scheduleData[key] : "";
+            });
+        } else {
+            inputs.forEach(input => input.value = "");
+        }
+
+        // Reset active input to the first cell
+        if (inputs.length > 0) {
+            activeInput = inputs[0];
+        }
+    }
+
+    // Toggle Quick Panel Function
+    function toggleQuickPanel() {
+        const panel = document.getElementById("quickButtonsPanel");
+        const btn = document.getElementById("togglePanelBtn");
+        panel.classList.toggle("hidden");
+        if (panel.classList.contains("hidden")) {
+            btn.innerText = "Show Panel";
+        } else {
+            btn.innerText = "Hide Panel";
+        }
+    }
+
+    function goToSchools() {
+        switchScreen("schoolsScreen");
+    }
+
+    function goToTeachers() {
+        selectSchool(currentSchoolKey);
+    }
+
+    function switchScreen(screenId) {
+        document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+        document.getElementById(screenId).classList.add("active");
+    }
+</script>
+
+</body>
+</html>
